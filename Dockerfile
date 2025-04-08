@@ -91,7 +91,8 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set proper permissions for the application directory
 RUN chown -R www-data:www-data /var/www/html/ \
-    && chmod -R 775 /var/www/html/
+    && chmod -R 775 /var/www/html/ \
+    && chmod g+s /var/www/html/
 
 EXPOSE 80 22
 
