@@ -8,6 +8,9 @@ sed -i 's/AllowTcpForwarding no/AllowTcpForwarding yes/g' /etc/ssh/sshd_config
 # Enable GatewayPorts and X11Forwarding for additional remote capabilities
 sed -i 's/GatewayPorts no/GatewayPorts yes/g' /etc/ssh/sshd_config
 sed -i 's/X11Forwarding no/X11Forwarding yes/g' /etc/ssh/sshd_config
+# Enable AllowAgentForwarding for SSH agent support
+sed -i 's/#AllowAgentForwarding yes/AllowAgentForwarding yes/g' /etc/ssh/sshd_config
+sed -i 's/AllowAgentForwarding no/AllowAgentForwarding yes/g' /etc/ssh/sshd_config
 
 # Set working directory in shell configs
 echo 'cd /var/www/html' >>/config/.bashrc
