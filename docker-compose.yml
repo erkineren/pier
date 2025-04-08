@@ -146,7 +146,6 @@ services:
     # ports:
     #   - "${CODE_SERVER_PORT:-8080}:8080"
     volumes:
-      - code_server_config:/home/coder/.config
       - app_data:/home/coder/project
     networks:
       - app_net
@@ -163,4 +162,3 @@ volumes:
   ssh_keys:
   ssh_config:
   ssh_host_keys:
-  code_server_config:
