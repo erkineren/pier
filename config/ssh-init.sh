@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Install rsync
+apk add --no-cache rsync
+
 # Set working directory in shell configs
 echo 'cd /var/www/html' >>/config/.bashrc
 echo 'cd /var/www/html' >>/config/.profile
