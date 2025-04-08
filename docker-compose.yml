@@ -1,0 +1,151 @@
+services:
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - redis
+      - elasticsearch
+      - mariadb
+    environment:
+      - APP_PUBLIC_PATH=${APP_PUBLIC_PATH:-/var/www/html}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/", "||", "exit", "1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      # Application data
+      - app_data:/var/www/html
+      # Configuration files
+      - ./config/php-recommended.ini:/usr/local/etc/php/conf.d/php-recommended.ini:ro
+      - ./config/apcu.ini:/usr/local/etc/php/conf.d/apcu.ini:ro
+      - ./config/000-default.conf:/etc/apache2/sites-available/000-default.conf:ro
+    # Add extra hosts to resolve host.docker.internal on Linux
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - app_net
+
+  redis:
+    image: redis:6-alpine
+    restart: always
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.9
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "${ES_PORT:-9200}:9200"
+    networks:
+      - app_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  mariadb:
+    image: mariadb:10.8
+    restart: always
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-app_db}
+      - MYSQL_USER=${MYSQL_USER:-dev}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-devpassword}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./config/mariadb:/docker-entrypoint-initdb.d
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD:-rootpassword}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_net
+
+  # Nginx as a simple proxy to Apache
+  nginx-proxy:
+    image: nginx:alpine
+    restart: always
+    depends_on:
+      - php
+    ports:
+      # Only expose HTTP port 8005
+      - "8005:80"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - app_data:/var/www/html:ro
+    networks:
+      - app_net
+    # Add labels for Traefik if needed (commented for reference)
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.http.routers.app.rule=Host(`app.example.com`)"
+
+  # SSH server for remote access
+  ssh:
+    image: linuxserver/openssh-server
+    restart: always
+    environment:
+      - PUID=33
+      - PGID=33
+      - TZ=UTC
+      - PASSWORD_ACCESS=true
+      - USER_NAME=appuser
+      - USER_PASSWORD=${SSH_PASSWORD:-p}
+    ports:
+      - "${SSH_PORT:-5555}:2222"
+    volumes:
+      - app_data:/var/www/html
+      - ./config/ssh-init.sh:/etc/cont-init.d/99-custom-init.sh:ro
+      - ssh_config:/config
+      - ssh_host_keys:/etc/ssh
+    networks:
+      - app_net
+
+networks:
+  app_net:
+    driver: bridge
+
+volumes:
+  redis_data:
+  elasticsearch_data:
+  app_data:
+  mariadb_data:
+  ssh_keys:
+  ssh_config:
+  ssh_host_keys:
