@@ -14,10 +14,13 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     unzip \
     git \
-    default-mysql-client \
     redis-tools \
     wget \
-    curl
+    curl \
+    openssh-server \
+    rsync \
+    nano \
+    vim
 
 # Install PHP extensions - separated to identify any problematic extensions
 # First, configure and install GD
@@ -47,6 +50,23 @@ RUN pecl install apcu \
 # Configure Apache
 RUN a2enmod rewrite headers expires env
 
+# SSH Server setup
+RUN mkdir -p /var/run/sshd \
+    && echo 'root:root' | chpasswd \
+    && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#AllowTcpForwarding no/AllowTcpForwarding yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#GatewayPorts no/GatewayPorts yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#X11Forwarding no/X11Forwarding yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#AllowAgentForwarding yes/AllowAgentForwarding yes/' /etc/ssh/sshd_config
+
+# Create appuser for SSH access with www-data permissions
+RUN useradd -m -d /var/www appuser \
+    && echo "appuser:${SSH_PASSWORD:-password}" | chpasswd \
+    && usermod -aG www-data appuser \
+    && echo 'appuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
+    && chown -R appuser:www-data /var/www/html
+
 # Set up the working directory
 WORKDIR /var/www/html
 
@@ -73,7 +93,10 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 RUN chown -R www-data:www-data /var/www/html/ \
     && chmod -R 775 /var/www/html/
 
-EXPOSE 80
+EXPOSE 80 22
 
-ENTRYPOINT ["docker-entrypoint.sh"]
+COPY ssh-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/ssh-entrypoint.sh
+
+ENTRYPOINT ["ssh-entrypoint.sh"]
 CMD ["apache2-foreground"] 
