@@ -22,7 +22,7 @@ A comprehensive dockerized infrastructure for PHP applications with a complete s
 1. Clone this repository:
 
    ```bash
-   git clone https://github.com/yourusername/pier.git
+   git clone https://github.com/erkineren/pier.git
    cd pier
    ```
 
