@@ -147,9 +147,9 @@ services:
       - DEFAULT_WORKSPACE=/config/workspace
     volumes:
       - app_data:/config/workspace
-      - code_server_config:/config
-    ports:
-      - "${CODE_SERVER_PORT:-8443}:8443"
+      - code_server_config2:/config
+    # ports:
+    #   - "${CODE_SERVER_PORT:-8443}:8443"
     networks:
       - app_net
 
@@ -165,4 +165,4 @@ volumes:
   ssh_keys:
   ssh_config:
   ssh_host_keys:
-  code_server_config:
+  code_server_config2:
