@@ -3,6 +3,9 @@
 # Install rsync
 apk add --no-cache rsync
 
+# Enable TCP forwarding for VS Code Remote SSH
+sed -i 's/AllowTcpForwarding no/AllowTcpForwarding yes/g' /etc/ssh/sshd_config
+
 # Set working directory in shell configs
 echo 'cd /var/www/html' >>/config/.bashrc
 echo 'cd /var/www/html' >>/config/.profile
