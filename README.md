@@ -55,8 +55,6 @@ Key environment variables that can be set in `.env`:
 - `MYSQL_USER`: Database user (default: `dev`)
 - `MYSQL_PASSWORD`: Database password (default: `devpassword`)
 - `MYSQL_ROOT_PASSWORD`: MariaDB root password (default: `rootpassword`)
-- `MYSQL_EXTERNAL_PORT`: External port for MariaDB (default: `3307`)
-- `ES_PORT`: External port for Elasticsearch (default: `9200`)
 - `SSH_PASSWORD`: Password for SSH access (default: `p`)
 - `SSH_PORT`: External port for SSH access (default: `5555`)
 

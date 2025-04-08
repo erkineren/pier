@@ -58,8 +58,6 @@ services:
         hard: 65536
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
-    ports:
-      - "${ES_PORT:-9200}:9200"
     networks:
       - app_net
     healthcheck:
@@ -103,9 +101,9 @@ services:
     restart: always
     depends_on:
       - php
-    ports:
-      # Only expose HTTP port 8005
-      - "8005:80"
+    # ports:
+    #   # Only expose HTTP port 8005
+    #   - "8005:80"
     volumes:
       - ./config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - app_data:/var/www/html:ro
