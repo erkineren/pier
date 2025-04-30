@@ -47,15 +47,16 @@ RUN pecl install apcu \
     && docker-php-ext-enable apcu
 
 # Configure Apache
-RUN a2enmod rewrite headers expires env
+RUN a2enmod rewrite headers expires env proxy proxy_http remoteip
+# Change Apache port from 80 to 8080
+RUN sed -i 's/Listen 80/Listen 8080/g' /etc/apache2/ports.conf
 
-# Configure Nginx
+# Configure Nginx as reverse proxy
 RUN rm /etc/nginx/sites-enabled/default
 COPY config/nginx.conf /etc/nginx/conf.d/default.conf
 RUN mkdir -p /var/log/nginx \
     && touch /var/log/nginx/access.log \
     && touch /var/log/nginx/error.log
-
 
 # Set up the working directory
 WORKDIR /var/www/html

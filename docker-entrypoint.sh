@@ -1,13 +1,22 @@
 #!/bin/bash
 set -e
 
-# Make sure Apache gets the environment variable
-echo "SetEnv APP_PUBLIC_PATH /var/www/html" >/etc/apache2/conf-enabled/app-env.conf
+# Make sure Apache is configured to listen on port 8080
+if ! grep -q "Listen 8080" /etc/apache2/ports.conf; then
+    sed -i 's/Listen 80/Listen 8080/g' /etc/apache2/ports.conf
+fi
 
-# Start Nginx
-service nginx start
+# Start Apache in background
+apache2ctl -k start
+
+# Wait a moment for Apache to fully start
+sleep 2
+
+# Start Nginx in foreground
+echo "Starting Nginx..."
+exec nginx -g 'daemon off;'
 
 # Display configuration info
-echo "Apache document root: /var/www/html"
+echo "Server is running with Apache + Nginx (reverse proxy)"
 
 exec "$@"
