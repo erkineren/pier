@@ -4,60 +4,10 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
-    depends_on:
-      - redis
-    environment:
-      - APP_PUBLIC_PATH=${APP_PUBLIC_PATH:-/var/www/html}
-    ports:
-      - "80:80"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/", "||", "exit", "1"]
       interval: 10s
       timeout: 5s
       retries: 5
-    volumes:
-      # Application data
-      - app_data:/var/www/html
-      # Configuration files
-      - ./config/php-recommended.ini:/usr/local/etc/php/conf.d/php-recommended.ini:ro
-      - ./config/apcu.ini:/usr/local/etc/php/conf.d/apcu.ini:ro
-      - ./config/000-default.conf:/etc/apache2/sites-available/000-default.conf:ro
-    # Add extra hosts to resolve host.docker.internal on Linux
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - app_net
-      - dokploy-network
-
-  redis:
-    image: redis:6-alpine
-    restart: always
-    volumes:
-      - redis_data:/data
-    networks:
-      - app_net
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Nginx as a simple proxy to Apache
-  nginx-proxy:
-    image: nginx:alpine
-    restart: always
-    depends_on:
-      - php
-    volumes:
-      - ./config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - app_data:/var/www/html:ro
-    networks:
-      - app_net
-
-networks:
-  app_net:
-    driver: bridge
-
-volumes:
-  redis_data:
-  app_data:
+    # volumes:
+    #   - ./app:/var/www/html

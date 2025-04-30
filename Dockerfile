@@ -18,7 +18,8 @@ RUN apt-get update && apt-get install -y \
     wget \
     curl \
     nano \
-    vim
+    vim \
+    nginx
 
 # Install PHP extensions - separated to identify any problematic extensions
 # First, configure and install GD
@@ -48,37 +49,35 @@ RUN pecl install apcu \
 # Configure Apache
 RUN a2enmod rewrite headers expires env
 
-# Create appuser for file permissions
-RUN useradd -m -d /var/www appuser \
-    && usermod -aG www-data appuser \
-    && chown -R appuser:www-data /var/www/html
+# Configure Nginx
+RUN rm /etc/nginx/sites-enabled/default
+COPY config/nginx.conf /etc/nginx/conf.d/default.conf
+RUN mkdir -p /var/log/nginx \
+    && touch /var/log/nginx/access.log \
+    && touch /var/log/nginx/error.log
+
 
 # Set up the working directory
 WORKDIR /var/www/html
 
 # Create PHP log directory
 RUN mkdir -p /var/log/php \
-    && touch /var/log/php/php_errors.log \
-    && chown www-data:www-data /var/log/php /var/log/php/php_errors.log \
-    && chmod 755 /var/log/php \
-    && chmod 664 /var/log/php/php_errors.log
+    && touch /var/log/php/php_errors.log
 
 # Create a basic index.html for healthcheck (will be overridden by mounted app files)
-RUN echo '<!DOCTYPE html><html><body><h1>Server is running</h1><p>Infrastructure is ready.</p></body></html>' > /var/www/html/index.html \
-    && chmod 644 /var/www/html/index.html \
-    && chown www-data:www-data /var/www/html/index.html
+RUN echo '<!DOCTYPE html><html><body><h1>Server is running</h1><p>Infrastructure is ready.</p></body></html>' > /var/www/html/index.html
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+# Copy configuration files
+COPY config/php-recommended.ini /usr/local/etc/php/conf.d/php-recommended.ini
+COPY config/apcu.ini /usr/local/etc/php/conf.d/apcu.ini
+COPY config/000-default.conf /etc/apache2/sites-available/000-default.conf
+
 # Set up entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# Set proper permissions for the application directory
-RUN chown -R www-data:www-data /var/www/html/ \
-    && chmod -R 775 /var/www/html/ \
-    && chmod g+s /var/www/html/
 
 EXPOSE 80
 
