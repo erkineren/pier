@@ -26,16 +26,26 @@ sleep 2
 # Display configuration info
 echo "Server is running with Apache (port 8080) + Nginx (port 80) as reverse proxy"
 echo "Document root: /var/www/html"
+echo "-----------------------------------------------------"
+echo "All logs will be displayed below:"
+echo "-----------------------------------------------------"
 
-# Start Nginx in foreground
-echo "Starting Nginx on port 80..."
-# Using daemon off to keep the container running
-
+# Start processes to show all logs
 if [ "$1" = 'apache2-foreground' ]; then
+    # Show Apache access logs
+    tail -f /var/log/apache2/access.log &
+    # Show Apache error logs
+    tail -f /var/log/apache2/error.log &
+    # Show Nginx access logs
+    tail -f /var/log/nginx/access.log &
+    # Show Nginx error logs
+    tail -f /var/log/nginx/error.log &
+    # Show PHP error logs
+    tail -f /var/log/php/php_errors.log &
+
+    # Start Nginx in foreground
     nginx -g 'daemon off;'
 else
     nginx
     exec "$@"
 fi
-
-echo "Server is running"

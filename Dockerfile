@@ -51,19 +51,25 @@ RUN a2enmod rewrite headers expires env proxy proxy_http remoteip
 # Change Apache port from 80 to 8080
 RUN sed -i 's/Listen 80/Listen 8080/g' /etc/apache2/ports.conf
 
+# Configure Apache logs to go to STDOUT and STDERR
+RUN ln -sf /dev/stdout /var/log/apache2/access.log && \
+    ln -sf /dev/stderr /var/log/apache2/error.log
+
+# Configure Nginx logs to go to STDOUT and STDERR
+RUN ln -sf /dev/stdout /var/log/nginx/access.log && \
+    ln -sf /dev/stderr /var/log/nginx/error.log
+
 # Configure Nginx as reverse proxy
 RUN rm /etc/nginx/sites-enabled/default
 COPY config/nginx.conf /etc/nginx/conf.d/default.conf
-RUN mkdir -p /var/log/nginx \
-    && touch /var/log/nginx/access.log \
-    && touch /var/log/nginx/error.log
 
 # Set up the working directory
 WORKDIR /var/www/html
 
-# Create PHP log directory
+# Create PHP log directory and redirect logs to STDERR
 RUN mkdir -p /var/log/php \
-    && touch /var/log/php/php_errors.log
+    && touch /var/log/php/php_errors.log \
+    && ln -sf /dev/stderr /var/log/php/php_errors.log
 
 # Create a basic index.html for healthcheck (will be overridden by mounted app files)
 RUN echo '<!DOCTYPE html><html><body><h1>Server is running</h1><p>Infrastructure is ready.</p></body></html>' > /var/www/html/index.html
