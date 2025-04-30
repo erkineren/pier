@@ -17,8 +17,6 @@ RUN apt-get update && apt-get install -y \
     redis-tools \
     wget \
     curl \
-    openssh-server \
-    rsync \
     nano \
     vim
 
@@ -50,21 +48,9 @@ RUN pecl install apcu \
 # Configure Apache
 RUN a2enmod rewrite headers expires env
 
-# SSH Server setup
-RUN mkdir -p /var/run/sshd \
-    && echo 'root:root' | chpasswd \
-    && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#AllowTcpForwarding no/AllowTcpForwarding yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#GatewayPorts no/GatewayPorts yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#X11Forwarding no/X11Forwarding yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#AllowAgentForwarding yes/AllowAgentForwarding yes/' /etc/ssh/sshd_config
-
-# Create appuser for SSH access with www-data permissions
+# Create appuser for file permissions
 RUN useradd -m -d /var/www appuser \
-    && echo "appuser:${SSH_PASSWORD:-password}" | chpasswd \
     && usermod -aG www-data appuser \
-    && echo 'appuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
     && chown -R appuser:www-data /var/www/html
 
 # Set up the working directory
@@ -94,10 +80,7 @@ RUN chown -R www-data:www-data /var/www/html/ \
     && chmod -R 775 /var/www/html/ \
     && chmod g+s /var/www/html/
 
-EXPOSE 80 22
+EXPOSE 80
 
-COPY ssh-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/ssh-entrypoint.sh
-
-ENTRYPOINT ["ssh-entrypoint.sh"]
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["apache2-foreground"] 
