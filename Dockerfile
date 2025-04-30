@@ -21,6 +21,9 @@ RUN apt-get update && apt-get install -y \
     vim \
     nginx
 
+# Ensure Nginx has HTTP/2 support
+RUN nginx -V 2>&1 | grep -o with-http_v2_module || echo "WARNING: Nginx does not have HTTP/2 support"
+
 # Install PHP extensions - separated to identify any problematic extensions
 # First, configure and install GD
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
