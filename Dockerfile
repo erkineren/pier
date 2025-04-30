@@ -19,7 +19,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     nano \
     vim \
-    nginx
+    nginx \
+    logrotate
 
 # Ensure Nginx has HTTP/2 support
 RUN nginx -V 2>&1 | grep -o with-http_v2_module || echo "WARNING: Nginx does not have HTTP/2 support"
@@ -54,25 +55,33 @@ RUN a2enmod rewrite headers expires env proxy proxy_http remoteip
 # Change Apache port from 80 to 8080
 RUN sed -i 's/Listen 80/Listen 8080/g' /etc/apache2/ports.conf
 
-# Configure Apache logs to go to STDOUT and STDERR
+# Create log directories
+RUN mkdir -p /var/log/apache2 \
+    && mkdir -p /var/log/nginx \
+    && mkdir -p /var/log/php
+
+# Configure Apache logs
 RUN ln -sf /dev/stdout /var/log/apache2/access.log && \
     ln -sf /dev/stderr /var/log/apache2/error.log
 
-# Configure Nginx logs to go to STDOUT and STDERR
+# Configure Nginx logs
 RUN ln -sf /dev/stdout /var/log/nginx/access.log && \
     ln -sf /dev/stderr /var/log/nginx/error.log
+
+# Configure PHP logs
+RUN touch /var/log/php/php_errors.log && \
+    chmod 666 /var/log/php/php_errors.log && \
+    ln -sf /dev/stderr /var/log/php/php_errors.log
 
 # Configure Nginx as reverse proxy
 RUN rm /etc/nginx/sites-enabled/default
 COPY config/nginx.conf /etc/nginx/conf.d/default.conf
 
+# Set up logrotate
+COPY config/logrotate.conf /etc/logrotate.d/app-logs
+
 # Set up the working directory
 WORKDIR /var/www/html
-
-# Create PHP log directory and redirect logs to STDERR
-RUN mkdir -p /var/log/php \
-    && touch /var/log/php/php_errors.log \
-    && ln -sf /dev/stderr /var/log/php/php_errors.log
 
 # Create a basic index.html for healthcheck (will be overridden by mounted app files)
 RUN echo '<!DOCTYPE html><html><body><h1>Server is running</h1><p>Infrastructure is ready.</p></body></html>' > /var/www/html/index.html
