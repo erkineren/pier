@@ -13,6 +13,8 @@ touch /var/log/php/php_errors.log
 chmod 666 /var/log/php/php_errors.log
 
 # Ensure log symlinks are set up correctly
+rm -f /var/log/apache2/access.log /var/log/apache2/error.log
+rm -f /var/log/nginx/access.log /var/log/nginx/error.log
 ln -sf /dev/stdout /var/log/apache2/access.log
 ln -sf /dev/stderr /var/log/apache2/error.log
 ln -sf /dev/stdout /var/log/nginx/access.log
@@ -24,6 +26,10 @@ if ! grep -q "Listen 8080" /etc/apache2/ports.conf; then
     sed -i 's/Listen 80/Listen 8080/g' /etc/apache2/ports.conf
     echo "Apache configured to use port 8080"
 fi
+
+# Verify Nginx configuration
+echo "Verifying Nginx configuration..."
+nginx -t
 
 # Start Apache in background
 echo "Starting Apache in background..."
@@ -38,6 +44,15 @@ fi
 # Wait a moment for Apache to fully start
 echo "Waiting for Apache to initialize..."
 sleep 2
+
+# Test Apache connection internally
+echo "Testing internal Apache connection..."
+curl -s http://127.0.0.1:8080 >/dev/null
+if [ $? -eq 0 ]; then
+    echo "Internal Apache connection successful"
+else
+    echo "WARNING: Internal Apache connection failed, Nginx proxy may not work"
+fi
 
 # Display configuration info
 echo "Server is running with Apache (port 8080) + Nginx (port 80) as reverse proxy"
