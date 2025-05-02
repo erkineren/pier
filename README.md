@@ -1,118 +1,82 @@
 # PIER - PHP Infrastructure Environment Ready
 
-A comprehensive dockerized infrastructure for PHP applications with a complete stack of services ready for development and production.
+This project uses Docker for containerization and infrastructure management. The setup includes a PHP-based web server environment with various optimizations and configurations.
 
-## Features
+## Container Architecture
 
-- **PHP 8.1** with Apache
-- **MariaDB 10.8** database
-- **Redis 6** for caching
-- **Elasticsearch 7.17** for search functionality
-- **Nginx** as a proxy server
-- **SSH Server** for remote access
-- Configured with sensible defaults and ready for customization
+The infrastructure is built using a single container that combines multiple services:
 
-## Requirements
+### Base Image
 
-- Docker
-- Docker Compose
+- PHP 8.1 with Apache
+- Nginx as a reverse proxy
+- Composer 2 for PHP dependency management
 
-## Quick Start
+### Installed Components
 
-1. Clone this repository:
+- **Web Servers**:
+  - Apache (port 8080)
+  - Nginx (port 80)
+- **PHP Extensions**:
+  - GD (with FreeType and JPEG support)
+  - Database: PDO, MySQL, MySQLi
+  - XML: DOM, SimpleXML
+  - Additional: ZIP, Intl, OPCache, MBString, Exif, BCMath, Calendar, FileInfo, Gettext, SOAP, Sockets
+  - Redis
+  - APCu
 
-   ```bash
-   git clone https://github.com/erkineren/pier.git
-   cd pier
-   ```
+### Logging Configuration
 
-2. Create a `.env` file (optional, for customizing configurations):
+- Apache logs redirected to stdout/stderr
+- Nginx logs redirected to stdout/stderr
+- PHP error logs configured
+- Logrotate setup for log management
 
-   ```bash
-   cp .env.example .env
-   ```
+### Security and Performance
 
-3. Start the services:
+- Apache modules enabled: rewrite, headers, expires, env, proxy, proxy_http, remoteip
+- PHP configuration optimized with recommended settings
+- APCu caching enabled
+- Nginx configured as reverse proxy
 
-   ```bash
-   docker-compose up -d
-   ```
+## Running the Infrastructure
 
-4. Access your application:
-   - Web: http://localhost:8005
-   - MariaDB: localhost:3307 (default credentials in docker-compose.yml)
-   - Elasticsearch: http://localhost:9200
-   - SSH: ssh appuser@localhost -p 5555
-
-## Configuration
-
-### Environment Variables
-
-Key environment variables that can be set in `.env`:
-
-- `APP_PUBLIC_PATH`: Path to your PHP application public directory (default: `/var/www/html`)
-- `MYSQL_DATABASE`: Database name (default: `app_db`)
-- `MYSQL_USER`: Database user (default: `dev`)
-- `MYSQL_PASSWORD`: Database password (default: `devpassword`)
-- `MYSQL_ROOT_PASSWORD`: MariaDB root password (default: `rootpassword`)
-- `SSH_PASSWORD`: Password for SSH access (default: `p`)
-- `SSH_PORT`: External port for SSH access (default: `5555`)
-
-### Directory Structure
-
-- `config/`: Configuration files for services
-  - `php-recommended.ini`: PHP configuration
-  - `apcu.ini`: APCu cache settings
-  - `000-default.conf`: Apache virtual host configuration
-  - `nginx.conf`: Nginx configuration
-  - `mariadb/`: MariaDB initialization scripts
-  - `ssh-init.sh`: SSH initialization script
-
-## Usage Examples
-
-### Deploying a PHP Application
-
-1. Place your PHP application files in a directory that will be mounted to the container:
-
-   ```yaml
-   volumes:
-     - ./your-app:/var/www/html
-   ```
-
-2. Restart the containers:
-   ```bash
-   docker-compose down
-   docker-compose up -d
-   ```
-
-### Adding Custom PHP Extensions
-
-Modify the Dockerfile to add more extensions:
-
-```dockerfile
-RUN docker-php-ext-install [extension-name]
-```
-
-### Database Management
-
-Connect to the database:
+To start the infrastructure:
 
 ```bash
-docker-compose exec mariadb mysql -u dev -p
+docker-compose up -d
 ```
 
-## Volumes
+The container will be available on port 80, with Nginx acting as a reverse proxy to Apache running on port 8080.
 
-- `app_data`: Application files
-- `mariadb_data`: MariaDB data
-- `redis_data`: Redis data
-- `elasticsearch_data`: Elasticsearch data
-- `ssh_config`, `ssh_host_keys`: SSH configuration
+## Health Check
 
-## Contributing
+A basic health check endpoint is available at the root URL (`/`), which will display a simple HTML page indicating that the server is running.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## Logging
 
-## License
+All logs are configured to be accessible through Docker's logging system:
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+- Apache access logs: stdout
+- Apache error logs: stderr
+- Nginx access logs: stdout
+- Nginx error logs: stderr
+- PHP error logs: stderr
+
+## Configuration Files
+
+The container includes several configuration files:
+
+- `nginx.conf`: Nginx reverse proxy configuration
+- `php-recommended.ini`: Optimized PHP settings
+- `apcu.ini`: APCu caching configuration
+- `000-default.conf`: Apache virtual host configuration
+- `logrotate.conf`: Log rotation settings
+
+## Maintenance
+
+The container is configured to restart automatically in case of failures (`restart: always` in docker-compose.yml).
+
+## Volume Mounting
+
+The application code is mounted from the host machine to `/var/www/html` in the container, allowing for easy development and updates without rebuilding the container.
