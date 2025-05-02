@@ -3,13 +3,35 @@ set -e
 
 echo "Configuring the server..."
 
+# Create user and group if they don't exist
+if ! getent group ${APP_GROUP_ID} >/dev/null; then
+    groupadd -g ${APP_GROUP_ID} ${APP_USER}
+fi
+
+if ! getent passwd ${APP_USER_ID} >/dev/null; then
+    useradd -u ${APP_USER_ID} -g ${APP_GROUP_ID} -m -s /bin/bash ${APP_USER}
+fi
+
+# Configure Apache to run as the specified user
+echo "User ${APP_USER}" >>/etc/apache2/apache2.conf
+echo "Group ${APP_USER}" >>/etc/apache2/apache2.conf
+
 # Create log directories if they don't exist
 mkdir -p /var/log/apache2
 mkdir -p /var/log/nginx
 mkdir -p /var/log/php
 
+# Set correct permissions for log files and directories
+chown -R ${APP_USER}:${APP_USER} /var/log/apache2
+chown -R ${APP_USER}:${APP_USER} /var/log/nginx
+chown -R ${APP_USER}:${APP_USER} /var/log/php
+chmod -R 755 /var/log/apache2
+chmod -R 755 /var/log/nginx
+chmod -R 755 /var/log/php
+
 # Set correct permissions for log files
 touch /var/log/php/php_errors.log
+chown ${APP_USER}:${APP_USER} /var/log/php/php_errors.log
 chmod 666 /var/log/php/php_errors.log
 
 # Ensure log symlinks are set up correctly
@@ -20,6 +42,9 @@ ln -sf /dev/stderr /var/log/apache2/error.log
 ln -sf /dev/stdout /var/log/nginx/access.log
 ln -sf /dev/stderr /var/log/nginx/error.log
 ln -sf /dev/stderr /var/log/php/php_errors.log
+
+# Configure Nginx to run as the specified user
+sed -i "s/user nginx;/user ${APP_USER};/g" /etc/nginx/nginx.conf
 
 # Make sure Apache is configured to listen on port 8080
 if ! grep -q "Listen 8080" /etc/apache2/ports.conf; then
@@ -72,7 +97,7 @@ service cron start
 
 # Start processes to show all logs
 if [ "$1" = 'apache2-foreground' ]; then
-    # Start Nginx in foreground
+    # Start Nginx in foreground as root (it will drop privileges to ${APP_USER})
     nginx -g 'daemon off;'
 else
     nginx

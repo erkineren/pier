@@ -2,6 +2,11 @@
 ARG PHP_VERSION=8.1
 FROM php:${PHP_VERSION}-apache
 
+# Set environment variables for user and group IDs
+ENV APP_USER_ID=1000
+ENV APP_GROUP_ID=1000
+ENV APP_USER=appuser
+
 # Install required dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
@@ -22,7 +27,8 @@ RUN apt-get update && apt-get install -y \
     nano \
     vim \
     nginx \
-    logrotate
+    logrotate \
+    gosu
 
 # Install PHP extensions - separated to identify any problematic extensions
 # First, configure and install GD
