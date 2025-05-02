@@ -34,6 +34,24 @@ build_and_push() {
     fi
 
     print_message "Successfully built and pushed ${image_tag}" "${GREEN}"
+
+    # If this is PHP 8.4, also tag and push as latest
+    if [ "${php_version}" = "8.4" ]; then
+        local latest_tag="erkineren/pier:latest"
+        print_message "Tagging and pushing as latest..." "${YELLOW}"
+
+        if ! docker tag "${image_tag}" "${latest_tag}"; then
+            print_message "Error: Docker tag failed for latest" "${RED}"
+            exit 1
+        fi
+
+        if ! docker push "${latest_tag}"; then
+            print_message "Error: Docker push failed for latest" "${RED}"
+            exit 1
+        fi
+
+        print_message "Successfully tagged and pushed as latest" "${GREEN}"
+    fi
 }
 
 # Main execution

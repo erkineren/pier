@@ -1,7 +1,7 @@
 # PIER - PHP Infrastructure Environment Ready
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/erkineren/pier.svg)](https://hub.docker.com/r/erkineren/pier)
-[![Docker Image Size](https://img.shields.io/docker/image-size/erkineren/pier/8.4)](https://hub.docker.com/r/erkineren/pier)
+[![Docker Image Size](https://img.shields.io/docker/image-size/erkineren/pier/latest)](https://hub.docker.com/r/erkineren/pier)
 [![Docker Stars](https://img.shields.io/docker/stars/erkineren/pier.svg)](https://hub.docker.com/r/erkineren/pier)
 
 This project uses Docker for containerization and infrastructure management. The setup includes a PHP-based web server environment with various optimizations and configurations.
@@ -34,7 +34,7 @@ The infrastructure is built using a single container that combines multiple serv
 The container can be run with custom user and group IDs to match your host system's user:
 
 ```bash
-docker run -e APP_USER_ID=1000 -e APP_GROUP_ID=1000 -e APP_USER=appuser your-image-name
+docker run -e APP_USER_ID=1000 -e APP_GROUP_ID=1000 -e APP_USER=appuser erkineren/pier
 ```
 
 - `APP_USER_ID`: User ID (default: 1000)
