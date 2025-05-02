@@ -1,8 +1,32 @@
 # PIER - PHP Infrastructure Environment Ready
 
+## Docker Images
+
+### Latest Version
+
 [![Docker Pulls](https://img.shields.io/docker/pulls/erkineren/pier.svg)](https://hub.docker.com/r/erkineren/pier)
 [![Docker Image Size](https://img.shields.io/docker/image-size/erkineren/pier/latest)](https://hub.docker.com/r/erkineren/pier)
 [![Docker Stars](https://img.shields.io/docker/stars/erkineren/pier.svg)](https://hub.docker.com/r/erkineren/pier)
+
+### PHP 8.4
+
+[![Docker Pulls](https://img.shields.io/docker/pulls/erkineren/pier/8.4.svg)](https://hub.docker.com/r/erkineren/pier)
+[![Docker Image Size](https://img.shields.io/docker/image-size/erkineren/pier/8.4)](https://hub.docker.com/r/erkineren/pier)
+
+### PHP 8.3
+
+[![Docker Pulls](https://img.shields.io/docker/pulls/erkineren/pier/8.3.svg)](https://hub.docker.com/r/erkineren/pier)
+[![Docker Image Size](https://img.shields.io/docker/image-size/erkineren/pier/8.3)](https://hub.docker.com/r/erkineren/pier)
+
+### PHP 8.2
+
+[![Docker Pulls](https://img.shields.io/docker/pulls/erkineren/pier/8.2.svg)](https://hub.docker.com/r/erkineren/pier)
+[![Docker Image Size](https://img.shields.io/docker/image-size/erkineren/pier/8.2)](https://hub.docker.com/r/erkineren/pier)
+
+### PHP 8.1
+
+[![Docker Pulls](https://img.shields.io/docker/pulls/erkineren/pier/8.1.svg)](https://hub.docker.com/r/erkineren/pier)
+[![Docker Image Size](https://img.shields.io/docker/image-size/erkineren/pier/8.1)](https://hub.docker.com/r/erkineren/pier)
 
 This project uses Docker for containerization and infrastructure management. The setup includes a PHP-based web server environment with various optimizations and configurations.
 
