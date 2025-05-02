@@ -1,4 +1,6 @@
-FROM php:8.1-apache
+# Define build arguments
+ARG PHP_VERSION=8.1
+FROM php:${PHP_VERSION}-apache
 
 # Install required dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
@@ -17,10 +19,10 @@ RUN apt-get update && apt-get install -y \
     redis-tools \
     wget \
     curl \
-    openssh-server \
-    rsync \
     nano \
-    vim
+    vim \
+    nginx \
+    logrotate
 
 # Install PHP extensions - separated to identify any problematic extensions
 # First, configure and install GD
@@ -48,56 +50,54 @@ RUN pecl install apcu \
     && docker-php-ext-enable apcu
 
 # Configure Apache
-RUN a2enmod rewrite headers expires env
+RUN a2enmod rewrite headers expires env proxy proxy_http remoteip
+# Change Apache port from 80 to 8080
+RUN sed -i 's/Listen 80/Listen 8080/g' /etc/apache2/ports.conf
 
-# SSH Server setup
-RUN mkdir -p /var/run/sshd \
-    && echo 'root:root' | chpasswd \
-    && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#AllowTcpForwarding no/AllowTcpForwarding yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#GatewayPorts no/GatewayPorts yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#X11Forwarding no/X11Forwarding yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#AllowAgentForwarding yes/AllowAgentForwarding yes/' /etc/ssh/sshd_config
+# Create log directories
+RUN mkdir -p /var/log/apache2 \
+    && mkdir -p /var/log/nginx \
+    && mkdir -p /var/log/php
 
-# Create appuser for SSH access with www-data permissions
-RUN useradd -m -d /var/www appuser \
-    && echo "appuser:${SSH_PASSWORD:-password}" | chpasswd \
-    && usermod -aG www-data appuser \
-    && echo 'appuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
-    && chown -R appuser:www-data /var/www/html
+# Configure Apache logs
+RUN ln -sf /dev/stdout /var/log/apache2/access.log && \
+    ln -sf /dev/stderr /var/log/apache2/error.log
+
+# Configure Nginx logs
+RUN ln -sf /dev/stdout /var/log/nginx/access.log && \
+    ln -sf /dev/stderr /var/log/nginx/error.log
+
+# Configure PHP logs
+RUN touch /var/log/php/php_errors.log && \
+    chmod 666 /var/log/php/php_errors.log && \
+    ln -sf /dev/stderr /var/log/php/php_errors.log
+
+# Configure Nginx as reverse proxy
+RUN rm /etc/nginx/sites-enabled/default
+COPY config/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Set up logrotate
+COPY config/logrotate.conf /etc/logrotate.d/app-logs
 
 # Set up the working directory
 WORKDIR /var/www/html
 
-# Create PHP log directory
-RUN mkdir -p /var/log/php \
-    && touch /var/log/php/php_errors.log \
-    && chown www-data:www-data /var/log/php /var/log/php/php_errors.log \
-    && chmod 755 /var/log/php \
-    && chmod 664 /var/log/php/php_errors.log
-
 # Create a basic index.html for healthcheck (will be overridden by mounted app files)
-RUN echo '<!DOCTYPE html><html><body><h1>Server is running</h1><p>Infrastructure is ready.</p></body></html>' > /var/www/html/index.html \
-    && chmod 644 /var/www/html/index.html \
-    && chown www-data:www-data /var/www/html/index.html
+RUN echo '<!DOCTYPE html><html><body><h1>Server is running</h1><p>Infrastructure is ready.</p></body></html>' > /var/www/html/index.html
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Copy configuration files
+COPY config/php-recommended.ini /usr/local/etc/php/conf.d/php-recommended.ini
+COPY config/apcu.ini /usr/local/etc/php/conf.d/apcu.ini
+COPY config/000-default.conf /etc/apache2/sites-available/000-default.conf
 
 # Set up entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Set proper permissions for the application directory
-RUN chown -R www-data:www-data /var/www/html/ \
-    && chmod -R 775 /var/www/html/ \
-    && chmod g+s /var/www/html/
+EXPOSE 80
 
-EXPOSE 80 22
-
-COPY ssh-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/ssh-entrypoint.sh
-
-ENTRYPOINT ["ssh-entrypoint.sh"]
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["apache2-foreground"] 

@@ -1,36 +1,80 @@
 #!/bin/bash
 set -e
 
-# Set default APP_PUBLIC_PATH if not provided
-if [ -z "$APP_PUBLIC_PATH" ]; then
-    export APP_PUBLIC_PATH=/var/www/html
+echo "Configuring the server..."
+
+# Create log directories if they don't exist
+mkdir -p /var/log/apache2
+mkdir -p /var/log/nginx
+mkdir -p /var/log/php
+
+# Set correct permissions for log files
+touch /var/log/php/php_errors.log
+chmod 666 /var/log/php/php_errors.log
+
+# Ensure log symlinks are set up correctly
+rm -f /var/log/apache2/access.log /var/log/apache2/error.log
+rm -f /var/log/nginx/access.log /var/log/nginx/error.log
+ln -sf /dev/stdout /var/log/apache2/access.log
+ln -sf /dev/stderr /var/log/apache2/error.log
+ln -sf /dev/stdout /var/log/nginx/access.log
+ln -sf /dev/stderr /var/log/nginx/error.log
+ln -sf /dev/stderr /var/log/php/php_errors.log
+
+# Make sure Apache is configured to listen on port 8080
+if ! grep -q "Listen 8080" /etc/apache2/ports.conf; then
+    sed -i 's/Listen 80/Listen 8080/g' /etc/apache2/ports.conf
+    echo "Apache configured to use port 8080"
 fi
 
-# Check if APP_PUBLIC_PATH is a subdirectory of /var/www/html
-if [[ "$APP_PUBLIC_PATH" != "/var/www/html" && "$APP_PUBLIC_PATH" =~ ^/var/www/html/.+ ]]; then
-    # Create the directory if it doesn't exist
-    mkdir -p "$APP_PUBLIC_PATH"
-    # Copy index.html to the public directory if it's empty
-    if [ ! "$(ls -A "$APP_PUBLIC_PATH")" ]; then
-        cp /var/www/html/index.html "$APP_PUBLIC_PATH/"
-    fi
+# Verify Nginx configuration
+echo "Verifying Nginx configuration..."
+nginx -t
+
+# Start Apache in background
+echo "Starting Apache in background..."
+apache2ctl -k start
+if [ $? -eq 0 ]; then
+    echo "Apache started successfully on port 8080"
+else
+    echo "Failed to start Apache"
+    exit 1
 fi
 
-# Make sure Apache gets the environment variable
-echo "SetEnv APP_PUBLIC_PATH ${APP_PUBLIC_PATH}" >/etc/apache2/conf-enabled/app-env.conf
+# Wait a moment for Apache to fully start
+echo "Waiting for Apache to initialize..."
+sleep 2
 
-# Set proper permissions for critical directories
-# echo "Setting proper permissions..."
-# chmod -R 775 /var/www/html
-# find /var/www/html -type d -exec chmod 775 {} \;
-# find /var/www/html -type f -exec chmod 664 {} \;
-# chown -R www-data:www-data /var/www/html
-
-# Ensure appuser is in www-data group and can write to the directory
-usermod -aG www-data appuser
-chmod g+s /var/www/html # Set SGID bit to ensure new files inherit group ownership
+# Test Apache connection internally
+echo "Testing internal Apache connection..."
+curl -s http://127.0.0.1:8080 >/dev/null
+if [ $? -eq 0 ]; then
+    echo "Internal Apache connection successful"
+else
+    echo "WARNING: Internal Apache connection failed, Nginx proxy may not work"
+fi
 
 # Display configuration info
-echo "Apache document root: $APP_PUBLIC_PATH"
+echo "Server is running with Apache (port 8080) + Nginx (port 80) as reverse proxy"
+echo "Document root: /var/www/html"
+echo "Logs are stored in /var/log and streamed to container output"
+echo "-----------------------------------------------------"
+echo "All logs will be displayed below:"
+echo "-----------------------------------------------------"
 
-exec "$@"
+# Setup logrotate cron job
+echo "* * * * * /usr/sbin/logrotate /etc/logrotate.d/app-logs >/dev/null 2>&1" >/etc/cron.d/logrotate
+chmod 0644 /etc/cron.d/logrotate
+crontab /etc/cron.d/logrotate
+
+# Start cron service
+service cron start
+
+# Start processes to show all logs
+if [ "$1" = 'apache2-foreground' ]; then
+    # Start Nginx in foreground
+    nginx -g 'daemon off;'
+else
+    nginx
+    exec "$@"
+fi
