@@ -103,6 +103,21 @@ COPY config/000-default.conf /etc/apache2/sites-available/000-default.conf
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
+# Ortak bağımlılıkların kurulumu
+RUN apt-get update && apt-get install -y \
+    libkrb5-dev \
+    libssl-dev \
+    libc-client2007e-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# IMAP uzantısının kurulumu
+RUN if [ "$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')" = "8.4" ]; then \
+    pecl install imap && docker-php-ext-enable imap; \
+    else \
+    docker-php-ext-configure imap --with-kerberos --with-imap-ssl && \
+    docker-php-ext-install imap; \
+    fi
+
 EXPOSE 80
 
 ENTRYPOINT ["docker-entrypoint.sh"]
