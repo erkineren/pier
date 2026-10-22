@@ -1,6 +1,8 @@
 # Define build arguments
 ARG PHP_VERSION=8.1
-FROM php:${PHP_VERSION}-apache
+# Debian bookworm'a sabitlendi: trixie tabanlı imajlarda libc-client2007e-dev
+# paketi yok, bu yüzden IMAP eklentisi build olmuyor.
+FROM php:${PHP_VERSION}-apache-bookworm
 
 # Set environment variables for user and group IDs
 ENV APP_USER_ID=1000
